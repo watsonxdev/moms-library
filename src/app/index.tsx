@@ -1,98 +1,81 @@
-import * as Device from 'expo-device';
-import { Platform, StyleSheet } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useCallback, useEffect, useState } from 'react';
 
-import { AnimatedIcon } from '@/components/animated-icon';
-import { HintRow } from '@/components/hint-row';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { WebBadge } from '@/components/web-badge';
-import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
+import AddBookScreen from '../../screens/AddBookScreen';
+import BookDetailScreen from '../../screens/BookDetailScreen';
+import HomeScreen from '../../screens/HomeScreen';
+import { deleteBook, getBooks, initDatabase } from '../../database/database';
 
-function getDevMenuHint() {
-  if (Platform.OS === 'web') {
-    return <ThemedText type="small">use browser devtools</ThemedText>;
+export type Book = {
+  id: number;
+  title: string;
+  author: string;
+  notes: string;
+  coverUri: string | null;
+  status: string;
+  createdAt: string;
+};
+
+type Screen = 'home' | 'add' | 'detail';
+
+export default function App() {
+  const [screen, setScreen] = useState<Screen>('home');
+  const [books, setBooks] = useState<Book[]>([]);
+  const [selectedBook, setSelectedBook] = useState<Book | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const loadBooks = useCallback(async () => {
+    const nextBooks = await getBooks();
+    setBooks(nextBooks);
+  }, []);
+
+  useEffect(() => {
+    async function prepareLibrary() {
+      try {
+        await initDatabase();
+        await loadBooks();
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    prepareLibrary();
+  }, [loadBooks]);
+
+  const handleSaved = async () => {
+    await loadBooks();
+    setScreen('home');
+  };
+
+  const handleDelete = async (book: Book) => {
+    await deleteBook(book.id);
+    await loadBooks();
+    setSelectedBook(null);
+    setScreen('home');
+  };
+
+  if (screen === 'add') {
+    return <AddBookScreen onCancel={() => setScreen('home')} onSaved={handleSaved} />;
   }
-  if (Device.isDevice) {
+
+  if (screen === 'detail' && selectedBook) {
     return (
-      <ThemedText type="small">
-        shake device or press <ThemedText type="code">m</ThemedText> in terminal
-      </ThemedText>
+      <BookDetailScreen
+        book={selectedBook}
+        onBack={() => setScreen('home')}
+        onDelete={() => handleDelete(selectedBook)}
+      />
     );
   }
-  const shortcut = Platform.OS === 'android' ? 'cmd+m (or ctrl+m)' : 'cmd+d';
+
   return (
-    <ThemedText type="small">
-      press <ThemedText type="code">{shortcut}</ThemedText>
-    </ThemedText>
+    <HomeScreen
+      books={books}
+      isLoading={isLoading}
+      onAddBook={() => setScreen('add')}
+      onSelectBook={(book: Book) => {
+        setSelectedBook(book);
+        setScreen('detail');
+      }}
+    />
   );
 }
-
-export default function HomeScreen() {
-  return (
-    <ThemedView style={styles.container}>
-      <SafeAreaView style={styles.safeArea}>
-        <ThemedView style={styles.heroSection}>
-          <AnimatedIcon />
-          <ThemedText type="title" style={styles.title}>
-            Welcome to&nbsp;Expo
-          </ThemedText>
-        </ThemedView>
-
-        <ThemedText type="code" style={styles.code}>
-          get started
-        </ThemedText>
-
-        <ThemedView type="backgroundElement" style={styles.stepContainer}>
-          <HintRow
-            title="Try editing"
-            hint={<ThemedText type="code">src/app/index.tsx</ThemedText>}
-          />
-          <HintRow title="Dev tools" hint={getDevMenuHint()} />
-          <HintRow
-            title="Fresh start"
-            hint={<ThemedText type="code">npm run reset-project</ThemedText>}
-          />
-        </ThemedView>
-
-        {Platform.OS === 'web' && <WebBadge />}
-      </SafeAreaView>
-    </ThemedView>
-  );
-}
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    flexDirection: 'row',
-  },
-  safeArea: {
-    flex: 1,
-    paddingHorizontal: Spacing.four,
-    alignItems: 'center',
-    gap: Spacing.three,
-    paddingBottom: BottomTabInset + Spacing.three,
-    maxWidth: MaxContentWidth,
-  },
-  heroSection: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    flex: 1,
-    paddingHorizontal: Spacing.four,
-    gap: Spacing.four,
-  },
-  title: {
-    textAlign: 'center',
-  },
-  code: {
-    textTransform: 'uppercase',
-  },
-  stepContainer: {
-    gap: Spacing.three,
-    alignSelf: 'stretch',
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.four,
-    borderRadius: Spacing.four,
-  },
-});
