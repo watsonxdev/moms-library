@@ -1,53 +1,14 @@
-import {
-  View,
-  Text,
-  Image
-} from 'react-native';
-
-export default function BookDetailScreen({
-  route
-}) {
-  const { book } = route.params;
-
-  return (
-    <View
-      style={{
-        padding: 20
-      }}
-    >
-      {book.coverUrl ? (
-        <Image
-          source={{
-            uri: book.coverUrl
-          }}
-          style={{
-            width: 150,
-            height: 220
-          }}
-        />
-      ) : null}
-
-      <Text
-        style={{
-          fontSize: 24,
-          fontWeight: 'bold'
-        }}
-      >
-        {book.title}
-      </Text>
-
-      <Text>{book.author}</Text>
-
-      <Text>{book.genre}</Text>
-
-      <Text>{book.status}</Text>
-
-      <Text>{book.notes}</Text>
-    </View>
-  );
-}
 import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+
+function StarRating({ rating }) {
+  return (
+    <Text style={styles.rating} accessibilityLabel={`${rating} out of 5 stars`}>
+      {'★'.repeat(rating)}
+      {'☆'.repeat(5 - rating)}
+    </Text>
+  );
+}
 
 export default function BookDetailScreen({ book, onBack, onDelete }) {
   const confirmDelete = () => {
@@ -79,7 +40,12 @@ export default function BookDetailScreen({ book, onBack, onDelete }) {
 
         <Text style={styles.title}>{book.title}</Text>
         <Text style={styles.author}>{book.author || 'Unknown author'}</Text>
-        <Text style={styles.status}>{book.status}</Text>
+        <StarRating rating={book.rating || 0} />
+
+        <View style={styles.metaRow}>
+          <Text style={styles.status}>{book.status}</Text>
+          <Text style={styles.shelf}>{book.shelf || 'Favorites'}</Text>
+        </View>
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Notes</Text>
@@ -93,7 +59,7 @@ export default function BookDetailScreen({ book, onBack, onDelete }) {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#f7f1e8',
+    backgroundColor: '#f5ead9',
   },
   toolbar: {
     flexDirection: 'row',
@@ -102,14 +68,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#e1d6c8',
+    borderBottomColor: '#d9bd93',
+    backgroundColor: '#efe0c8',
   },
   textButton: {
     paddingHorizontal: 12,
     paddingVertical: 8,
   },
   textButtonLabel: {
-    color: '#3d5b47',
+    color: '#754b2d',
     fontSize: 16,
     fontWeight: '800',
   },
@@ -120,7 +87,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#7d2d2b',
   },
   deleteButtonLabel: {
-    color: '#ffffff',
+    color: '#fff7ea',
     fontSize: 15,
     fontWeight: '800',
   },
@@ -142,17 +109,17 @@ const styles = StyleSheet.create({
     width: 148,
     height: 222,
     borderRadius: 8,
-    backgroundColor: '#6d5f52',
+    backgroundColor: '#6f4b31',
     alignItems: 'center',
     justifyContent: 'center',
   },
   coverInitial: {
-    color: '#fffaf3',
+    color: '#fff7ea',
     fontSize: 58,
     fontWeight: '800',
   },
   title: {
-    color: '#251f1a',
+    color: '#2f2118',
     fontSize: 30,
     fontWeight: '800',
     lineHeight: 36,
@@ -160,20 +127,41 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   author: {
-    color: '#665a50',
+    color: '#746050',
     fontSize: 18,
     marginTop: 8,
     textAlign: 'center',
   },
+  rating: {
+    color: '#c38324',
+    fontSize: 24,
+    marginTop: 14,
+  },
+  metaRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: 8,
+    marginTop: 14,
+  },
   status: {
-    color: '#3d5b47',
+    color: '#34533f',
     fontSize: 14,
     fontWeight: '800',
-    marginTop: 16,
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 999,
     backgroundColor: '#dce8d8',
+    overflow: 'hidden',
+  },
+  shelf: {
+    color: '#754b2d',
+    fontSize: 14,
+    fontWeight: '800',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: '#f1ddbd',
     overflow: 'hidden',
   },
   section: {
@@ -181,18 +169,18 @@ const styles = StyleSheet.create({
     marginTop: 28,
     padding: 18,
     borderRadius: 8,
-    backgroundColor: '#ffffff',
+    backgroundColor: '#fffaf3',
     borderWidth: 1,
-    borderColor: '#ded6cc',
+    borderColor: '#d7b98b',
   },
   sectionTitle: {
-    color: '#251f1a',
+    color: '#2f2118',
     fontSize: 18,
     fontWeight: '800',
     marginBottom: 8,
   },
   notes: {
-    color: '#51473f',
+    color: '#4b3527',
     fontSize: 16,
     lineHeight: 24,
   },

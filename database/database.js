@@ -1,56 +1,5 @@
 import * as SQLite from 'expo-sqlite';
 
-const db = SQLite.openDatabaseSync('books.db');
-
-export function initializeDatabase() {
-  db.execSync(`
-    CREATE TABLE IF NOT EXISTS books (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      title TEXT,
-      author TEXT,
-      genre TEXT,
-      status TEXT,
-      coverUrl TEXT,
-      rating INTEGER,
-      notes TEXT
-    );
-  `);
-}
-
-export function getBooks() {
-  return db.getAllSync(
-    'SELECT * FROM books ORDER BY title ASC'
-  );
-}
-
-export function addBook(book) {
-  db.runSync(
-    `
-      INSERT INTO books
-      (
-        title,
-        author,
-        genre,
-        status,
-        coverUrl,
-        rating,
-        notes
-      )
-      VALUES (?, ?, ?, ?, ?, ?, ?)
-    `,
-    [
-      book.title,
-      book.author,
-      book.genre,
-      book.status,
-      book.coverUrl,
-      book.rating,
-      book.notes
-    ]
-  );
-}
-import * as SQLite from 'expo-sqlite';
-
 let dbPromise;
 
 function getDatabase() {
@@ -72,16 +21,30 @@ export async function initDatabase() {
       notes TEXT NOT NULL DEFAULT '',
       coverUri TEXT,
       status TEXT NOT NULL DEFAULT 'Want to read',
+      rating INTEGER NOT NULL DEFAULT 0,
+      shelf TEXT NOT NULL DEFAULT 'Favorites',
       createdAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     );
   `);
+
+  await ensureColumn(db, 'rating', 'INTEGER NOT NULL DEFAULT 0');
+  await ensureColumn(db, 'shelf', "TEXT NOT NULL DEFAULT 'Favorites'");
+}
+
+async function ensureColumn(db, columnName, definition) {
+  const columns = await db.getAllAsync('PRAGMA table_info(books);');
+  const exists = columns.some((column) => column.name === columnName);
+
+  if (!exists) {
+    await db.execAsync(`ALTER TABLE books ADD COLUMN ${columnName} ${definition};`);
+  }
 }
 
 export async function getBooks() {
   const db = await getDatabase();
 
   return db.getAllAsync(`
-    SELECT id, title, author, notes, coverUri, status, createdAt
+    SELECT id, title, author, notes, coverUri, status, rating, shelf, createdAt
     FROM books
     ORDER BY datetime(createdAt) DESC, id DESC;
   `);
@@ -92,14 +55,16 @@ export async function addBook(book) {
 
   const result = await db.runAsync(
     `
-      INSERT INTO books (title, author, notes, coverUri, status, createdAt)
-      VALUES (?, ?, ?, ?, ?, ?);
+      INSERT INTO books (title, author, notes, coverUri, status, rating, shelf, createdAt)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?);
     `,
     book.title.trim(),
     book.author.trim(),
     book.notes.trim(),
     book.coverUri || null,
     book.status,
+    book.rating || 0,
+    book.shelf.trim() || 'Favorites',
     new Date().toISOString()
   );
 

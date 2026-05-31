@@ -12,6 +12,8 @@ export type Book = {
   notes: string;
   coverUri: string | null;
   status: string;
+  rating: number;
+  shelf: string;
   createdAt: string;
 };
 
